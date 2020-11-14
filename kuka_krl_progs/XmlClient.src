@@ -1,0 +1,226 @@
+&ACCESS RVP
+&REL 303
+&PARAM SensorITMASK = *
+&PARAM TEMPLATE = C:\KRC\Roboter\Template\vorgabe
+&PARAM DISKPATH = KRC:\R1\Program
+DEF xmlclient( )
+
+;FOLD Declaration
+STRUC CDAT INT Cmd, INT IValue, REAL FValue, BOOL BValue
+DECL CDAT CDEFAULT
+DECL EKI_STATUS RET
+DECL INT    IndexHead, IndexTail, I
+DECL INT    IValue
+DECL BOOL   BValue
+DECL REAL   FValue
+DECL BOOL   bErrMsg
+DECL INT    RXCount
+DECL INT    z_coordinate
+DECL CDAT   CmdDate[256]
+
+
+DECL POS    Point1Date[256]
+DECL FRAME    Point3Date[15]
+DECL POS    Point2Date[256]
+DECL PDAT   PDate[256]
+DECL LDAT   LDate[256]
+DECL FDAT   FDate[256]
+DECL INT Counter
+DECL INT isFirstElement
+DECL INT receivingCount
+DECL INT Protocol
+POS p;
+
+;ENDFOLD
+
+;FOLD INI
+  ;FOLD BASISTECH INI  
+ 
+    BAS (#INITMOV,0 )
+  ;ENDFOLD (BASISTECH INI)
+  ;FOLD USER INI
+    ;Make your modifications here
+  ;ENDFOLD (USER INI)
+;ENDFOLD (INI)
+	$TOOL = TOOL_DATA[15]
+	$BASE = BASE_DATA[16]
+Counter = 1
+bErrMsg=true
+IValue=0
+BValue=FALSE
+FValue=0.0
+p = {X 0.0, Y 0.0, Z 0.0, A 0.0, B 0.0, C 0.0, S 0, T 0}
+FOR I=1 TO 256
+  CmdDate[I]={Cmd 0,IValue 0,FValue 0.0,BValue FALSE}
+  Point1Date[I]={X 0.0, Y 0.0, Z 0.0, A 0.0, B 0.0, C 0.0, S 0, T 0}
+  Point2Date[I]={X 0.0, Y 0.0, Z 0.0, A 0.0, B 0.0, C 0.0, S 0, T 0}
+  PDate[I]=PDEFAULT
+  FDate[I]=FDEFAULT
+  LDate[I]=LDEFAULT
+ENDFOR
+$FLAG[1]=FALSE ; Connect
+$FLAG[2]=FALSE ; Get data
+$FLAG[3]=FALSE ; Read data
+$FLAG[4]=FALSE ; Execution
+$FLAG[5]=FALSE ; Overlow
+RET=EKI_Init("XmlClient")
+
+LOOP
+
+REPEAT
+RET=EKI_Close("XmlClient")
+RET=EKI_Open("XmlClient")
+if bErrMsg then
+  bErrMsg=false
+  if RET.connected==FALSE THEN
+    MSGNOTIFY("No connection to the XmlServer")
+  ENDIF
+endif
+UNTIL RET.connected
+MSGNOTIFY("Connected to the XmlServer")
+bErrMsg=true
+
+WAIT FOR $FLAG[1]
+RET = EKI_ClearBuffer("XmlClient", "Server")
+;$BWDSTART=FALSE
+;PDAT_ACT=PPDAT1
+;BAS(#PTP_PARAMS,100)
+IndexHead=1
+IndexTail=1
+RXCount=0
+$FLAG[2]=FALSE
+$FLAG[3]=FALSE
+$FLAG[4]=FALSE
+$FLAG[5]=FALSE
+
+;$BWDSTART = FALSE
+;PDAT_ACT=PDEFAULT
+;FDAT_ACT=FHOME
+;BAS (#PTP_PARAMS,100 )
+;$H_POS=XHOME
+PTP XHOME
+
+LOOP
+
+IF $FLAG[1]==FALSE THEN
+  EXIT
+ENDIF
+
+IF ($FLAG[2]==TRUE) AND ($FLAG[5]==FALSE) THEN
+  $FLAG[2]=FALSE
+  $FLAG[3]=TRUE
+  RET = EKI_CheckBuffer("XmlClient", "Server/Cmd")
+  RXCount=RXCount+RET.buff
+ENDIF
+
+IF $FLAG[3]==TRUE THEN
+
+WAIT SEC 0.5
+
+Counter = 1
+for Counter = 11 to 1 step -1
+Point3Date[Counter] = {X 0.0, Y 0.0, Z 0.0, A 0.0, B 0.0, C 0.0};
+endfor
+
+Counter = 1
+receivingCount = 10;
+isFirstElement = 1
+Point3Date[receivingCount+1] = {X 666.0, Y 666.0, Z 666.0, A 666.0, B 666.0, C 666.0}; the end message of the packet
+
+WHILE TRUE
+WHILE Counter <> (receivingCount+1)
+
+  if isFirstElement == 0 then  ; send a flag that says that we received an message and want more
+   RET = EKI_SetReal("XmlClient","Server/Pos2/X", Point3Date[Counter-1].X)
+   RET = EKI_SetReal("XmlClient","Server/Pos2/Y", Point3Date[Counter-1].Y) 
+   RET = EKI_SetReal("XmlClient","Server/Pos2/Z", Point3Date[Counter-1].Z)   
+   RET = EKI_SetReal("XmlClient","Server/Pos2/A", Point3Date[Counter-1].A) 
+   RET = EKI_SetReal("XmlClient","Server/Pos2/B", Point3Date[Counter-1].B) 
+   RET = EKI_SetReal("XmlClient","Server/Pos2/C", Point3Date[Counter-1].C)  
+   RET = EKI_Send("XmlClient", "Server")
+  endif
+    
+  if isFirstElement == 1 then  ; send a flag that want to receive an message
+   RET = EKI_SetReal("XmlClient","Server/Pos2/X", Point3Date[receivingCount+1].X)
+   RET = EKI_SetReal("XmlClient","Server/Pos2/Y", Point3Date[receivingCount+1].Y) 
+   RET = EKI_SetReal("XmlClient","Server/Pos2/Z", Point3Date[receivingCount+1].Z)   
+   RET = EKI_SetReal("XmlClient","Server/Pos2/A", Point3Date[receivingCount+1].A) 
+   RET = EKI_SetReal("XmlClient","Server/Pos2/B", Point3Date[receivingCount+1].B) 
+   RET = EKI_SetReal("XmlClient","Server/Pos2/C", Point3Date[receivingCount+1].C) 
+   RET = EKI_Send("XmlClient", "Server")  
+   isFirstElement = 0
+  endif
+
+
+
+; check if data is correct
+WHILE (Point3Date[Counter].A  == 0.0) OR (Point3Date[Counter].B  == 0.0) OR (Point3Date[Counter].C  == 0.0) OR (Point3Date[Counter].Y  == 0.0 ) OR (Point3Date[Counter].X  == 0.0 ) OR (Point3Date[Counter].Z  > -15.0 )  
+      RET=EKI_GetReal("XmlClient","Server/Pos2/X", Point3Date[Counter].X)
+      RET=EKI_GetReal("XmlClient","Server/Pos2/Y", Point3Date[Counter].Y)
+      RET=EKI_GetReal("XmlClient","Server/Pos2/Z", Point3Date[Counter].Z)
+      RET=EKI_GetReal("XmlClient","Server/Pos2/A", Point3Date[Counter].A)
+      RET=EKI_GetReal("XmlClient","Server/Pos2/B", Point3Date[Counter].B)
+      RET=EKI_GetReal("XmlClient","Server/Pos2/C", Point3Date[Counter].C)    
+      WAIT SEC 0.001; get a point
+      
+ENDWHILE
+; increase counter to take next message
+  Counter = Counter + 1       
+      ENDWHILE
+      
+      
+
+
+      ;$BWDSTART=FALSE
+      ;PDAT_ACT=PPDAT1
+      ;BAS(#PTP_PARAMS,100)
+$BWDSTART=FALSE
+PDAT_ACT=PPDAT1
+FDAT_ACT=VAR1
+   
+
+      Point3Date[1].z = -20
+      PTP Point3Date[1]
+       Point3Date[1].z = Point3Date[2].z ;make it as previous
+      SPLINE WITH $VEL.CP = 0.3
+      SPL Point3Date[1]
+      SPL Point3Date[2]
+      SPL Point3Date[3]
+      SPL Point3Date[4]
+      SPL Point3Date[5]
+      SPL Point3Date[6]
+      SPL Point3Date[7]
+      SPL Point3Date[8]
+      SPL Point3Date[9]
+      SPL Point3Date[10]
+      ENDSPLINE  
+       WAIT SEC 0.01; 
+
+      ;$BWDSTART=FALSE
+      ;PDAT_ACT=PPDAT1
+      ;BAS(#PTP_PARAMS,100)
+      Point3Date[10].z = -20;
+      PTP Point3Date[10]
+     WAIT SEC 0.5; 
+     
+     
+     for Counter = 10 to 1 step -1 ;remove all messages
+Point3Date[Counter] = {X 0.0, Y 0.0, Z 0.0, A 0.0, B 0.0, C 0.0};
+endfor
+
+      Counter = 1; start loop again
+      isFirstElement = 1; start loop again
+     
+      ENDWHILE 
+;
+      ; sending flag 1 = client finish the job
+     ; Protocol = 100
+     ;  RET = EKI_SetInt("XmlClient","Robot/Cmd", Protocol) 
+ ;  RET = EKI_Send("XmlClient", "Robot")  
+ENDIF
+ENDLOOP
+;RET=EKI_Close("XmlClient")
+ENDLOOP
+END
+
+

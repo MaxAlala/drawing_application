@@ -1,0 +1,15 @@
+
+/**/*.autosave
+/**/*.Debug
+/**/*.Release
+/**/*.user
+/**/*.rc
+/**/*.o
+/**/.metadata/
+/**/.settings/
+/**/bin/
+/**/.classpath
+/**/.project
+/**/koko2/
+/qt_opencv_server_kuka_app/doxygen
+
