@@ -1,4 +1,3 @@
-
 /**/*.autosave
 /**/*.Debug
 /**/*.Release
@@ -12,4 +11,5 @@
 /**/.project
 /**/koko2/
 /qt_opencv_server_kuka_app/doxygen
-
+/qt_opencv_server_kuka_app/src/*.o
+/qt_opencv_server_kuka_app/src/moc_*.cpp
