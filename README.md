@@ -3,8 +3,7 @@
 How to use:<br>
 * StartCam start an available camera    <br>
 * Using trackbars u can change a quality of a Canny algorithm output.<br>
-* Push TakePortrait and then group_points.txt file will be created. It contains 1) group number; 2) point number in the group;
-3) X and Y coordinates describing point<br>
+* Push TakePortrait and then group_points.txt file will be created. It contains 1) group number; 2) point number in the group;3) X and Y coordinates describing point<br>
 * if u satisfied with result you push createServer. It will start TCP server which will wait for a connection on port 59152.
 Protocol description:<br>
 ^ at the beginning server waits a message from client<br>
